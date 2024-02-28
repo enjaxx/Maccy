@@ -5,6 +5,7 @@ extension UserDefaults {
     static let avoidTakingFocus = "avoidTakingFocus"
     static let clearOnQuit = "clearOnQuit"
     static let clearSystemClipboard = "clearSystemClipboard"
+    static let clipboardCheckInterval = "clipboardCheckInterval"
     static let enabledPasteboardTypes = "enabledPasteboardTypes"
     static let hideFooter = "hideFooter"
     static let hideSearch = "hideSearch"
@@ -28,12 +29,13 @@ extension UserDefaults {
     static let previewDelay = "previewDelay"
     static let searchMode = "searchMode"
     static let removeFormattingByDefault = "removeFormattingByDefault"
-    static let saratovSeparator = "enableSaratovSeparator"
     static let showRecentCopyInMenuBar = "showRecentCopyInMenuBar"
+    static let showSpecialSymbols = "showSpecialSymbols"
     static let size = "historySize"
     static let sortBy = "sortBy"
     static let suppressClearAlert = "suppressClearAlert"
     static let ignoreRegexp = "ignoreRegexp"
+    static let highlightMatch = "highlightMatch"
 
     static var showInStatusBar: String {
       ProcessInfo.processInfo.arguments.contains("ui-testing") ? "showInStatusBarUITests" : "showInStatusBar"
@@ -45,6 +47,7 @@ extension UserDefaults {
   }
 
   public struct Values {
+    static let clipboardCheckInterval = 0.5
     static let ignoredApps: [String] = []
     static let ignoredPasteboardTypes: [String] = []
     static let ignoreRegexp: [String] = []
@@ -57,9 +60,11 @@ extension UserDefaults {
     static let previewDelay = 1500
     static let searchMode = "exact"
     static let showInStatusBar = true
+    static let showSpecialSymbols = true
     static let size = 200
     static let sortBy = "lastCopiedAt"
     static let menuIcon = "maccy"
+    static let highlightMatch = "bold"
   }
 
   public var avoidTakingFocus: Bool {
@@ -75,6 +80,11 @@ extension UserDefaults {
   public var clearSystemClipboard: Bool {
     get { bool(forKey: Keys.clearSystemClipboard) }
     set { set(newValue, forKey: Keys.clearSystemClipboard) }
+  }
+
+  @objc dynamic var clipboardCheckInterval: Double {
+    get { double(forKey: Keys.clipboardCheckInterval) }
+    set { set(newValue, forKey: Keys.clipboardCheckInterval) }
   }
 
   @objc dynamic public var enabledPasteboardTypes: Set<NSPasteboard.PasteboardType> {
@@ -198,11 +208,6 @@ extension UserDefaults {
     set { set(newValue, forKey: Keys.removeFormattingByDefault) }
   }
 
-  public var saratovSeparator: Bool {
-    get { bool(forKey: Keys.saratovSeparator) }
-    set { set(newValue, forKey: Keys.saratovSeparator) }
-  }
-
   public var searchMode: String {
     get { string(forKey: Keys.searchMode) ?? Values.searchMode }
     set { set(newValue, forKey: Keys.searchMode) }
@@ -218,6 +223,11 @@ extension UserDefaults {
     set { set(newValue, forKey: Keys.showRecentCopyInMenuBar) }
   }
 
+  @objc dynamic var showSpecialSymbols: Bool {
+    get { bool(forKey: Keys.showSpecialSymbols) }
+    set { set(newValue, forKey: Keys.showSpecialSymbols) }
+  }
+
   public var size: Int {
     get { integer(forKey: Keys.size) }
     set { set(newValue, forKey: Keys.size) }
@@ -231,5 +241,10 @@ extension UserDefaults {
   public var suppressClearAlert: Bool {
     get { bool(forKey: Keys.suppressClearAlert) }
     set { set(newValue, forKey: Keys.suppressClearAlert) }
+  }
+
+  public var highlightMatches: String {
+    get { string(forKey: Keys.highlightMatch) ?? Values.highlightMatch }
+    set { set(newValue, forKey: Keys.highlightMatch) }
   }
 }

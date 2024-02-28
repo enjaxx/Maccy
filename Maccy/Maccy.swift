@@ -38,6 +38,7 @@ class Maccy: NSObject {
     ]
   )
 
+  private var clipboardCheckIntervalObserver: NSKeyValueObservation?
   private var enabledPasteboardTypesObserver: NSKeyValueObservation?
   private var ignoreEventsObserver: NSKeyValueObservation?
   private var imageHeightObserver: NSKeyValueObservation?
@@ -49,6 +50,7 @@ class Maccy: NSObject {
   private var pinToObserver: NSKeyValueObservation?
   private var removeFormattingByDefaultObserver: NSKeyValueObservation?
   private var sortByObserver: NSKeyValueObservation?
+  private var showSpecialSymbolsObserver: NSKeyValueObservation?
   private var showRecentCopyInMenuBarObserver: NSKeyValueObservation?
   private var statusItemConfigurationObserver: NSKeyValueObservation?
   private var statusItemVisibilityObserver: NSKeyValueObservation?
@@ -56,11 +58,13 @@ class Maccy: NSObject {
 
   override init() {
     UserDefaults.standard.register(defaults: [
+      UserDefaults.Keys.clipboardCheckInterval: UserDefaults.Values.clipboardCheckInterval,
       UserDefaults.Keys.imageMaxHeight: UserDefaults.Values.imageMaxHeight,
       UserDefaults.Keys.maxMenuItems: UserDefaults.Values.maxMenuItems,
       UserDefaults.Keys.maxMenuItemLength: UserDefaults.Values.maxMenuItemLength,
       UserDefaults.Keys.previewDelay: UserDefaults.Values.previewDelay,
-      UserDefaults.Keys.showInStatusBar: UserDefaults.Values.showInStatusBar
+      UserDefaults.Keys.showInStatusBar: UserDefaults.Values.showInStatusBar,
+      UserDefaults.Keys.showSpecialSymbols: UserDefaults.Values.showSpecialSymbols
     ])
 
     super.init()
@@ -73,6 +77,7 @@ class Maccy: NSObject {
   }
 
   deinit {
+    clipboardCheckIntervalObserver?.invalidate()
     enabledPasteboardTypesObserver?.invalidate()
     ignoreEventsObserver?.invalidate()
     hideFooterObserver?.invalidate()
@@ -84,6 +89,7 @@ class Maccy: NSObject {
     removeFormattingByDefaultObserver?.invalidate()
     sortByObserver?.invalidate()
     showRecentCopyInMenuBarObserver?.invalidate()
+    showSpecialSymbolsObserver?.invalidate()
     statusItemConfigurationObserver?.invalidate()
     statusItemVisibilityObserver?.invalidate()
     statusItemChangeObserver?.invalidate()
@@ -123,7 +129,7 @@ class Maccy: NSObject {
     clipboard.onNewCopy(history.add)
     clipboard.onNewCopy(menu.add)
     clipboard.onNewCopy(updateMenuTitle)
-    clipboard.startListening()
+    clipboard.start()
 
     populateHeader()
     populateItems()
@@ -257,6 +263,9 @@ class Maccy: NSObject {
 
   // swiftlint:disable function_body_length
   private func initializeObservers() {
+    clipboardCheckIntervalObserver = UserDefaults.standard.observe(\.clipboardCheckInterval, options: .new) { _, _ in
+      self.clipboard.restart()
+    }
     enabledPasteboardTypesObserver = UserDefaults.standard.observe(\.enabledPasteboardTypes, options: .new) { _, _ in
       self.updateStatusItemEnabledness()
     }
@@ -291,6 +300,10 @@ class Maccy: NSObject {
     }
     sortByObserver = UserDefaults.standard.observe(\.sortBy, options: .new) { _, _ in
       self.rebuild()
+    }
+    showSpecialSymbolsObserver = UserDefaults.standard.observe(\.showSpecialSymbols, options: .new) { _, _ in
+      self.menu.regenerateMenuItemTitles()
+      CoreDataManager.shared.saveContext()
     }
     showRecentCopyInMenuBarObserver = UserDefaults.standard.observe(\.showRecentCopyInMenuBar,
                                                                     options: .new) { _, _ in

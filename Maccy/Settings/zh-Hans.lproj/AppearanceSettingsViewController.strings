@@ -1,8 +1,8 @@
 /* Class = "NSMenuItem"; title = "Menu icon"; ObjectID = "0h4-CZ-fwT"; */
 "0h4-CZ-fwT.title" = "菜单栏图标";
 
-/* Class = "NSTextFieldCell"; title = "Press ⌘, to open preferences when footer is hidden."; ObjectID = "0tN-4z-p8T"; */
-"0tN-4z-p8T.title" = "隐藏底部菜单时仍可按 ⌘, 打开偏好设置。";
+/* Class = "NSTextFieldCell"; title = "⚠️ Press ⌘, to open preferences when footer is hidden."; ObjectID = "0tN-4z-p8T"; */
+"0tN-4z-p8T.title" = "⚠️ 隐藏底部菜单时仍可按 ⌘, 打开偏好设置。";
 
 /* Class = "NSMenuItem"; title = "Cursor"; ObjectID = "Ccp-5J-8nw"; */
 "Ccp-5J-8nw.title" = "光标";
@@ -69,3 +69,24 @@
 
 /* Class = "NSStackView"; ibShadowedToolTip = "Delay in milliseconds until a preview popup is shown.\nDefault: 1500."; ObjectID = "7SP-tN-nLD"; */
 "7SP-tN-nLD.ibShadowedToolTip" = "延迟以毫秒为单位，直到显示预览弹出窗口。\n默认: 1500。";
+
+/* Class = "NSTextFieldCell"; title = "Highlight matches:"; ObjectID = "gzY-QO-mMa"; */
+"gzY-QO-mMa.title" = "突出显示比赛：";
+
+/* Class = "NSMenuItem"; title = "Bold"; ObjectID = "Ab6-Jt-UI5"; */
+"Ab6-Jt-UI5.title" = "粗体";
+
+/* Class = "NSMenuItem"; title = "Italic"; ObjectID = "OHf-E4-lFq"; */
+"OHf-E4-lFq.title" = "斜体";
+
+/* Class = "NSMenuItem"; title = "Underline"; ObjectID = "UPc-L7-OTE"; */
+"UPc-L7-OTE.title" = "强调";
+
+/* Class = "NSPopUpButton"; ibShadowedToolTip = "Change the highlighting style for search matches.\nDefault: Bold."; ObjectID = "B41-eW-cJt"; */
+"B41-eW-cJt.ibShadowedToolTip" = "更改搜索匹配项的突出显示样式。\n默认: 粗体。";
+
+/* Class = "NSButtonCell"; title = "Show special symbols"; ObjectID = "t7k-cr-U2Q"; */
+"t7k-cr-U2Q.title" = "显示特殊符号";
+
+/* Class = "NSButton"; ibShadowedToolTip = "Show newlines, tabs, leading and trailing spaces via special symbols."; ObjectID = "tC6-tV-7tl"; */
+"tC6-tV-7tl.ibShadowedToolTip" = "通过特殊符号显示换行符、制表符、前导和尾随空格。";

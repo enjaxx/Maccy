@@ -193,10 +193,21 @@ class HistoryItem: NSManagedObject {
       title = html.string
     }
 
-    return title
-      .trimmingCharacters(in: .whitespacesAndNewlines)
-      .replacingOccurrences(of: "\n", with: "⏎")
-      .shortened(to: UserDefaults.standard.maxMenuItemLength)
+    if UserDefaults.standard.showSpecialSymbols {
+      if let range = title.range(of: "^ +", options: .regularExpression) {
+        title = title.replacingOccurrences(of: " ", with: "·", range: range)
+      }
+      if let range = title.range(of: " +$", options: .regularExpression) {
+        title = title.replacingOccurrences(of: " ", with: "·", range: range)
+      }
+      title = title
+        .replacingOccurrences(of: "\n", with: "⏎")
+        .replacingOccurrences(of: "\t", with: "⇥")
+    } else {
+      title = title.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    return title.shortened(to: UserDefaults.standard.maxMenuItemLength)
   }
 
   private func validatePin(_ pin: String) throws {
@@ -218,7 +229,7 @@ class HistoryItem: NSManagedObject {
 
     return content?.value
   }
-  
+
   private func allContentData(_ types: [NSPasteboard.PasteboardType]) -> [Data] {
     let contents = getContents()
     return contents

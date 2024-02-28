@@ -21,12 +21,14 @@ class AppearanceSettingsViewController: NSViewController, SettingsPane {
   @IBOutlet weak var titleLengthStepper: NSStepper!
   @IBOutlet weak var previewDelayField: NSTextField!
   @IBOutlet weak var previewDelayStepper: NSStepper!
+  @IBOutlet weak var showSpecialSymbolsButton: NSButton!
   @IBOutlet weak var showMenuIconButton: NSButton!
   @IBOutlet weak var changeMenuIcon: NSPopUpButton!
   @IBOutlet weak var showRecentCopyButton: NSButton!
   @IBOutlet weak var showSearchFieldButton: NSButton!
   @IBOutlet weak var showTitleButton: NSButton!
   @IBOutlet weak var showFooterButton: NSButton!
+  @IBOutlet weak var highlightMatchesButton: NSPopUpButton!
   @IBOutlet weak var openPreferencesLabel: NSTextField!
 
   private let imageHeightMin = 1
@@ -62,12 +64,14 @@ class AppearanceSettingsViewController: NSViewController, SettingsPane {
     populateNumberOfItems()
     populateTitleLength()
     populatePreviewDelay()
+    populateShowSpecialSymbols()
     populateShowMenuIcon()
     populateChangeMenuIcon()
     populateShowRecentCopy()
     populateShowSearchField()
     populateShowTitle()
     populateShowFooter()
+    populateHighlightMatch()
   }
 
   @IBAction func popupAtCursorSelected(_ sender: NSMenuItem) {
@@ -156,6 +160,10 @@ class AppearanceSettingsViewController: NSViewController, SettingsPane {
     previewDelayField.integerValue = sender.integerValue
   }
 
+  @IBAction func showSpecialSymbolsChanged(_ sender: NSButton) {
+    UserDefaults.standard.showSpecialSymbols = (sender.state == .on)
+  }
+
   @IBAction func showMenuIconChanged(_ sender: NSButton) {
     UserDefaults.standard.showInStatusBar = (sender.state == .on)
     popupAtMenuIconMenuItem.isEnabled = (sender.state == .on)
@@ -192,6 +200,17 @@ class AppearanceSettingsViewController: NSViewController, SettingsPane {
   @IBAction func showFooterChanged(_ sender: NSButton) {
     UserDefaults.standard.hideFooter = (sender.state == .off)
     openPreferencesLabel.isHidden = (sender.state == .on)
+  }
+
+  @IBAction func highlightMatchesChanged(_ sender: NSPopUpButton) {
+    switch sender.selectedTag() {
+    case 1:
+      UserDefaults.standard.highlightMatches = "italic"
+    case 2:
+      UserDefaults.standard.highlightMatches = "underline"
+    default:
+      UserDefaults.standard.highlightMatches = "bold"
+    }
   }
 
   private func populateScreens() {
@@ -309,6 +328,10 @@ class AppearanceSettingsViewController: NSViewController, SettingsPane {
     previewDelayStepper.integerValue = UserDefaults.standard.previewDelay
   }
 
+  private func populateShowSpecialSymbols() {
+    showSpecialSymbolsButton.state = UserDefaults.standard.showSpecialSymbols ? .on : .off
+  }
+
   private func populateShowMenuIcon() {
     showMenuIconButton.state = UserDefaults.standard.showInStatusBar ? .on : .off
     popupAtMenuIconMenuItem.isEnabled = UserDefaults.standard.showInStatusBar
@@ -343,6 +366,17 @@ class AppearanceSettingsViewController: NSViewController, SettingsPane {
   private func populateShowFooter() {
     showFooterButton.state = UserDefaults.standard.hideFooter ? .off : .on
     openPreferencesLabel.isHidden = !UserDefaults.standard.hideFooter
+  }
+
+  private func populateHighlightMatch() {
+    switch UserDefaults.standard.highlightMatches {
+    case "italic":
+      highlightMatchesButton.selectItem(withTag: 1)
+    case "underline":
+      highlightMatchesButton.selectItem(withTag: 2)
+    default:
+      highlightMatchesButton.selectItem(withTag: 0)
+    }
   }
 }
 // swiftlint:enable type_body_length
