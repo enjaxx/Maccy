@@ -6,24 +6,26 @@
     <description>Most recent changes with links to updates.</description>
     <language>en</language>
     <item>
-      <title>0.29.4</title>
+      <title>0.31.0</title>
       <description>
         <![CDATA[
           <ul>
-            <li>Added a new paperclip menu icon.</li>
-            <li>Added a link to configure notifications and sounds in preferences.</li>
-            <li>Fixed an issue when a pin image was black in a dark appearance.</li>
-            <li>Fixed an issue when the popup would be hidden beyond screen edges.</li>
+            <li>Added Arabic translation.</li>
+            <li>Added Dutch translation.</li>
+            <li>Improved performance of showing/hiding header and footer.</li>
+            <li>Fixed issue with copying cross-reference links in Microsoft Word.</li>
+            <li>Fixed duplicated items during search in macOS 13 and older.</li>
+            <li>Fixed auto-update sandbox warning.</li>
           </ul>
         ]]>
       </description>
-      <pubDate>2024-01-24</pubDate>
-      <releaseNotesLink>https://github.com/p0deje/Maccy/releases/tag/0.29.4</releaseNotesLink>
+      <pubDate>2024-04-28</pubDate>
+      <releaseNotesLink>https://github.com/p0deje/Maccy/releases/tag/0.31.0</releaseNotesLink>
       <sparkle:minimumSystemVersion>10.14</sparkle:minimumSystemVersion>
       <enclosure
-        url="https://github.com/p0deje/Maccy/releases/download/0.29.4/Maccy.app.zip"
-        sparkle:version="28"
-        sparkle:shortVersionString="0.29.4"
+        url="https://github.com/p0deje/Maccy/releases/download/0.31.0/Maccy.app.zip"
+        sparkle:version="30"
+        sparkle:shortVersionString="0.31.0"
         length="0"
         type="application/octet-stream"
       />
