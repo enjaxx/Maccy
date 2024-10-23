@@ -9,11 +9,7 @@
 "quit" = "Завершить";
 "preferences" = "Настройки…";
 "preferences_advanced" = "Дополнения";
-"preferences_appearance" = "Внешний Вид";
-"preferences_ignore" = "Игнорирование";
-"preferences_general" = "Основные";
 "preferences_pins" = "Прикреплённые";
-"preferences_storage" = "Хранение";
 "copy_modifiers_config" = "• Выберите, зажав %@, чтобы скопировать запись.";
 "paste_modifiers_config" = "• Выберите, зажав %@, чтобы скопировать и вставить запись.";
 "format_modifiers_config" = "• Выберите, зажав %@, чтобы скопировать, очистить форматирование и вставить запись.";

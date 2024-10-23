@@ -5,12 +5,11 @@
 
 [![Downloads](https://img.shields.io/github/downloads/p0deje/Maccy/total.svg)](https://github.com/p0deje/Maccy/releases/latest)
 [![Build Status](https://img.shields.io/bitrise/716921b669780314/master?token=3pMiCb5dpFzlO-7jTYtO3Q)](https://app.bitrise.io/app/716921b669780314)
-[![Donate](https://img.shields.io/badge/buy%20me%20a%20coffee-donate-yellow.svg)](https://www.buymeacoffee.com/p0deje)
 
 Maccy is a lightweight clipboard manager for macOS. It keeps the history of what you copy
 and lets you quickly navigate, search, and use previous clipboard contents.
 
-Maccy works on macOS Mojave 10.14 or higher.
+Maccy works on macOS Sonoma 14 or higher.
 
 <!-- vim-markdown-toc GFM -->
 
@@ -25,6 +24,8 @@ Maccy works on macOS Mojave 10.14 or higher.
   * [Why doesn't it paste when I select an item in history?](#why-doesnt-it-paste-when-i-select-an-item-in-history)
   * [When assigning a hotkey to open Maccy, it says that this hotkey is already used in some system setting.](#when-assigning-a-hotkey-to-open-maccy-it-says-that-this-hotkey-is-already-used-in-some-system-setting)
   * [How to restore hidden footer?](#how-to-restore-hidden-footer)
+  * [How to ignore copies from Universal Clipboard?](#how-to-ignore-copies-from-universal-clipboard)
+* [Translations](#translations)
 * [Motivation](#motivation)
 * [License](#license)
 
@@ -93,23 +94,12 @@ or overwritten:
 * `Pasteboard generator type`
 * `net.antelle.keeweb`
 
-You can add additional custom types using preferences or `defaults`:
-
-```sh
-defaults write org.p0deje.Maccy ignoredPasteboardTypes -array-add "com.myapp.CustomType"
-```
-
-If you need to find what custom types are used by an application, you can use
+You can add additional custom types using settings.
+To find what custom types are used by an application, you can use
 free application [Pasteboard-Viewer](https://github.com/sindresorhus/Pasteboard-Viewer).
 Simply download the application, open it, copy something from the application you
 want to ignore and look for any custom types in the left sidebar. [Here is an example
 of using this approach to ignore Adobe InDesign](https://github.com/p0deje/Maccy/issues/125).
-
-If you accidentally removed default types, you can restore the original configuration:
-
-```sh
-defaults write org.p0deje.Maccy ignoredPasteboardTypes -array "de.petermaurer.TransientPasteboardType" "com.typeit4me.clipping" "Pasteboard generator type" "com.agilebits.onepassword" "net.antelle.keeweb"
-```
 
 ### Speed up Clipboard Check Interval
 
@@ -147,6 +137,18 @@ If for some reason it doesn't work, run the following command in Terminal.app:
 defaults delete org.p0deje.Maccy hideFooter
 ```
 
+### How to ignore copies from [Universal Clipboard](https://support.apple.com/en-us/102430)?
+
+1. Open Preferences -> Ignore -> Pasteboard Types.
+2. Add `com.apple.is-remote-clipboard`.
+
+## Translations
+
+The translations are hosted in [Weblate](https://hosted.weblate.org/engage/maccy/).
+You can use it to suggest changes in translations and localize the application to a new language.
+
+[![Translation status](https://hosted.weblate.org/widget/maccy/multi-auto.svg)](https://hosted.weblate.org/engage/maccy/)
+
 ## Motivation
 
 There are dozens of similar applications out there, so why build another?
@@ -155,6 +157,7 @@ a clipboard manager that is as free and simple as [Parcellite](http://parcellite
 but I couldn't. So I've decided to build one.
 
 Also, I wanted to learn Swift and get acquainted with macOS application development.
+
 
 ## License
 
