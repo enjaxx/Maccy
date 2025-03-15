@@ -31,8 +31,10 @@ struct ContentView: View {
       .animation(.easeInOut(duration: 0.2), value: appState.searchVisible)
       .padding(.horizontal, 5)
       .padding(.vertical, appState.popup.verticalPadding)
-      .onAppear { searchFocused = true }
-      .onContinuousHover(coordinateSpace: .local) { _ in
+      .onAppear {
+        searchFocused = true
+      }
+      .onMouseMove {
         appState.isKeyboardNavigating = false
       }
       .task {

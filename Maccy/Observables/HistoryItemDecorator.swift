@@ -52,8 +52,10 @@ class HistoryItemDecorator: Identifiable, Hashable {
 
   var previewImage: NSImage?
   var thumbnailImage: NSImage?
+  var applicationImage: ApplicationImage
 
-  var text: String { item.previewableText }
+  // 10k characters seems to be more than enough on large displays
+  var text: String { item.previewableText.shortened(to: 10_000) }
 
   var isPinned: Bool { item.pin != nil }
   var isUnpinned: Bool { item.pin == nil }
@@ -70,6 +72,7 @@ class HistoryItemDecorator: Identifiable, Hashable {
     self.item = item
     self.shortcuts = shortcuts
     self.title = item.title
+    self.applicationImage = ApplicationImageCache.shared.getImage(item: item)
 
     synchronizeItemPin()
     synchronizeItemTitle()

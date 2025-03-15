@@ -16,6 +16,7 @@ struct AppearanceSettingsPane: View {
   @Default(.searchVisibility) private var searchVisibility
   @Default(.showFooter) private var showFooter
   @Default(.windowPosition) private var windowPosition
+  @Default(.showApplicationIcons) private var showApplicationIcons
 
   @State private var screens = NSScreen.screens
 
@@ -53,23 +54,8 @@ struct AppearanceSettingsPane: View {
         HStack {
           Picker("", selection: $popupAt) {
             ForEach(PopupPosition.allCases) { position in
-              if position == .center || position == .lastPosition {
-                if screens.count > 1 {
-                  Picker(position.description, selection: $popupScreen) {
-                    Text("ActiveScreen", tableName: "AppearanceSettings")
-                      .tag(0)
-
-                    ForEach(Array(screens.enumerated()), id: \.element) { index, screen in
-                      Text(screen.localizedName)
-                        .tag(index + 1)
-                    }
-                  }
-                  .onChange(of: popupScreen) {
-                    popupAt = position
-                  }
-                } else {
-                  Text(position.description)
-                }
+              if position == .center || position == .lastPosition, screens.count > 1 {
+                screenPicker(for: position)
               } else {
                 Text(position.description)
               }
@@ -181,6 +167,9 @@ struct AppearanceSettingsPane: View {
         Defaults.Toggle(key: .showTitle) {
           Text("ShowTitleBeforeSearchField", tableName: "AppearanceSettings")
         }
+        Defaults.Toggle(key: .showApplicationIcons) {
+          Text("ShowApplicationIcons", tableName: "AppearanceSettings")
+        }
 
         Defaults.Toggle(key: .showFooter) {
           Text("ShowFooter", tableName: "AppearanceSettings")
@@ -193,6 +182,41 @@ struct AppearanceSettingsPane: View {
     }
     .onReceive(NotificationCenter.default.publisher(for: NSApplication.didChangeScreenParametersNotification)) { _ in
       screens = NSScreen.screens
+    }
+  }
+
+  @ViewBuilder
+  private func screenPicker(for position: PopupPosition) -> some View {
+    let screenBinding: Binding<Int> = Binding {
+      return popupScreen
+    } set: {
+      popupScreen = $0
+      popupAt = position
+    }
+
+    Picker(selection: screenBinding) {
+      Text(labelForScreen(index: 0))
+        .tag(0)
+
+      ForEach(screens.indices, id: \.self) { index in
+        Text(labelForScreen(index: index + 1))
+          .tag(index + 1)
+      }
+    } label: {
+      if popupAt == position {
+        Text("\(position.description) (\(labelForScreen(index: popupScreen)))")
+      } else {
+        Text(position.description)
+      }
+    }
+  }
+
+  private func labelForScreen(index screenIndex: Int) -> String {
+    switch screenIndex {
+    case 0:
+      return String(localized: "ActiveScreen", table: "AppearanceSettings")
+    case _:
+      return screens[screenIndex - 1].localizedName
     }
   }
 }

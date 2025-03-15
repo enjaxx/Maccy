@@ -213,17 +213,20 @@ class ClipboardTests: XCTestCase {
     let item = HistoryItem()
     Storage.shared.context.insert(item)
     item.contents = contents
+    item.application = "com.foo.bar"
     clipboard.copy(item)
     XCTAssertEqual(pasteboard.string(forType: .string), "foo")
     XCTAssertEqual(pasteboard.data(forType: .tiff), imageData)
     XCTAssertEqual(pasteboard.string(forType: .fileURL), "file://foo.bar")
     XCTAssertEqual(pasteboard.string(forType: .fromMaccy), "")
+    XCTAssertEqual(pasteboard.string(forType: .source), "com.foo.bar")
   }
 
   @MainActor
   func testCopyWithoutFormatting() {
     let contents = [
       HistoryItemContent(type: stringType.rawValue, value: "foo".data(using: .utf8)!),
+      HistoryItemContent(type: fileURLType.rawValue, value: "file://foo.bar".data(using: .utf8)!),
       HistoryItemContent(type: rtfType.rawValue,
                          value: coloredString.rtf(from: NSRange(location: 0, length: coloredString.length),
                                                   documentAttributes: [:]))
@@ -231,9 +234,12 @@ class ClipboardTests: XCTestCase {
     let item = HistoryItem()
     Storage.shared.context.insert(item)
     item.contents = contents
+    item.application = "com.foo.bar"
     clipboard.copy(item, removeFormatting: true)
     XCTAssertEqual(pasteboard.string(forType: .string), "foo")
     XCTAssertEqual(pasteboard.string(forType: .fromMaccy), "")
+    XCTAssertEqual(pasteboard.string(forType: .source), "com.foo.bar")
+    XCTAssertEqual(pasteboard.string(forType: .fileURL), "file://foo.bar")
     XCTAssertNil(pasteboard.data(forType: .rtf))
   }
 

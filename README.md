@@ -128,13 +128,13 @@ defaults write org.p0deje.Maccy clipboardCheckInterval 0.1 # 100 ms
 ### How to restore hidden footer?
 
 1. Open Maccy window.
-2. Press ⌘, to open preferences.
+2. Press <kbd>COMMAND (⌘)</kbd> + <kbd>,</kbd> to open preferences.
 3. Enable footer in Appearance section.
 
 If for some reason it doesn't work, run the following command in Terminal.app:
 
 ```sh
-defaults delete org.p0deje.Maccy hideFooter
+defaults write org.p0deje.Maccy showFooter 1
 ```
 
 ### How to ignore copies from [Universal Clipboard](https://support.apple.com/en-us/102430)?

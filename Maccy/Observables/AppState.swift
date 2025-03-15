@@ -15,20 +15,24 @@ class AppState: Sendable {
   var scrollTarget: UUID?
   var selection: UUID? {
     didSet {
-      history.selectedItem = nil
-      footer.selectedItem = nil
-
-      if let item = history.items.first(where: { $0.id == selection }) {
-        history.selectedItem = item
-      } else if let item = footer.items.first(where: { $0.id == selection }) {
-        footer.selectedItem = item
-      }
+      selectWithoutScrolling(selection)
       scrollTarget = selection
     }
   }
 
+  func selectWithoutScrolling(_ item: UUID?) {
+    history.selectedItem = nil
+    footer.selectedItem = nil
+
+    if let item = history.items.first(where: { $0.id == item }) {
+      history.selectedItem = item
+    } else if let item = footer.items.first(where: { $0.id == item }) {
+      footer.selectedItem = item
+    }
+  }
+
   var hoverSelectionWhileKeyboardNavigating: UUID?
-  var isKeyboardNavigating: Bool = false {
+  var isKeyboardNavigating: Bool = true {
     didSet {
       if let hoverSelection = hoverSelectionWhileKeyboardNavigating {
         hoverSelectionWhileKeyboardNavigating = nil
@@ -172,6 +176,7 @@ class AppState: Sendable {
             toolbarIcon: NSImage.pincircle!
           ) {
             PinsSettingsPane()
+              .environment(self)
               .modelContainer(Storage.shared.container)
           },
           Settings.Pane(

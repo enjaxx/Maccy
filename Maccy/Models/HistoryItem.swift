@@ -2,6 +2,7 @@ import AppKit
 import Defaults
 import Sauce
 import SwiftData
+import Vision
 
 @Model
 class HistoryItem {
@@ -10,9 +11,10 @@ class HistoryItem {
     // "q" reserved for quit
     // "v" reserved for paste
     // "w" reserved for close window
+    // "z" reserved for undo/redo
     var keys = Set([
       "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l",
-      "m", "n", "o", "p", "r", "s", "t", "u", "x", "y", "z"
+      "m", "n", "o", "p", "r", "s", "t", "u", "x", "y"
     ])
 
     if let deleteKey = KeyChord.deleteKey,
@@ -41,6 +43,14 @@ class HistoryItem {
   @MainActor
   static var randomAvailablePin: String { availablePins.randomElement() ?? "" }
 
+  private static let transientTypes: [String] = [
+    NSPasteboard.PasteboardType.modified.rawValue,
+    NSPasteboard.PasteboardType.fromMaccy.rawValue,
+    NSPasteboard.PasteboardType.linkPresentationMetadata.rawValue,
+    NSPasteboard.PasteboardType.customPasteboardData.rawValue,
+    NSPasteboard.PasteboardType.source.rawValue
+  ]
+
   var application: String?
   var firstCopiedAt: Date = Date.now
   var lastCopiedAt: Date = Date.now
@@ -60,10 +70,7 @@ class HistoryItem {
   func supersedes(_ item: HistoryItem) -> Bool {
     return item.contents
       .filter { content in
-        ![
-          NSPasteboard.PasteboardType.modified.rawValue,
-          NSPasteboard.PasteboardType.fromMaccy.rawValue
-        ].contains(content.type)
+        !Self.transientTypes.contains(content.type)
       }
       .allSatisfy { content in
         contents.contains(where: { $0.type == content.type && $0.value == content.value })
@@ -72,10 +79,14 @@ class HistoryItem {
 
   func generateTitle() -> String {
     guard image == nil else {
+      Task {
+        self.performTextRecognition()
+      }
       return ""
     }
 
-    var title = previewableText
+    // 1k characters is trade-off for performance
+    var title = previewableText.shortened(to: 1_000)
 
     if Defaults[.showSpecialSymbols] {
       if let range = title.range(of: "^ +", options: .regularExpression) {
@@ -130,7 +141,7 @@ class HistoryItem {
 
   var imageData: Data? {
     var data: Data?
-    data = contentData([.tiff, .png, .jpeg])
+    data = contentData([.tiff, .png, .jpeg, .heic])
     if data == nil, universalClipboardImage, let url = fileURLs.first {
       data = try? Data(contentsOf: url)
     }
@@ -177,7 +188,7 @@ class HistoryItem {
 
   private var universalClipboardImage: Bool { universalClipboard && fileURLs.first?.pathExtension == "jpeg" }
   private var universalClipboardText: Bool {
-    universalClipboard && contentData([.html, .tiff, .png, .jpeg, .rtf, .string]) != nil
+    universalClipboard && contentData([.html, .tiff, .png, .jpeg, .rtf, .string, .heic]) != nil
   }
 
   private func contentData(_ types: [NSPasteboard.PasteboardType]) -> Data? {
@@ -192,5 +203,33 @@ class HistoryItem {
     return contents
       .filter { types.contains(NSPasteboard.PasteboardType($0.type)) }
       .compactMap { $0.value }
+  }
+
+  private func performTextRecognition() {
+    guard let cgImage = image?.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+      return
+    }
+
+    let requestHandler = VNImageRequestHandler(cgImage: cgImage)
+    let request = VNRecognizeTextRequest(completionHandler: recognizeTextHandler)
+    request.recognitionLevel = .fast
+
+    do {
+      try requestHandler.perform([request])
+    } catch {
+      print("Unable to perform the request: \(error).")
+    }
+  }
+
+  private func recognizeTextHandler(request: VNRequest, error: Error?) {
+    guard let observations = request.results as? [VNRecognizedTextObservation] else {
+      return
+    }
+
+    let recognizedStrings = observations.compactMap { observation in
+      return observation.topCandidates(1).first?.string
+    }
+
+    self.title = recognizedStrings.joined(separator: "\n")
   }
 }

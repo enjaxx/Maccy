@@ -12,11 +12,27 @@ struct HistoryListView: View {
   @Default(.pinTo) private var pinTo
   @Default(.previewDelay) private var previewDelay
 
+  private var pinnedItems: [HistoryItemDecorator] {
+    appState.history.pinnedItems.filter(\.isVisible)
+  }
+  private var unpinnedItems: [HistoryItemDecorator] {
+    appState.history.unpinnedItems.filter(\.isVisible)
+  }
+  private var showPinsSeparator: Bool {
+    !pinnedItems.isEmpty && !unpinnedItems.isEmpty && appState.history.searchQuery.isEmpty
+  }
+
   var body: some View {
     if pinTo == .top {
       LazyVStack(spacing: 0) {
-        ForEach(appState.history.pinnedItems.filter(\.isVisible)) { item in
+        ForEach(pinnedItems) { item in
           HistoryItemView(item: item)
+        }
+
+        if showPinsSeparator {
+          Divider()
+            .padding(.horizontal, 10)
+            .padding(.vertical, 3)
         }
       }
       .background {
@@ -32,7 +48,7 @@ struct HistoryListView: View {
     ScrollView {
       ScrollViewReader { proxy in
         LazyVStack(spacing: 0) {
-          ForEach(appState.history.unpinnedItems) { item in
+          ForEach(unpinnedItems) { item in
             HistoryItemView(item: item)
           }
         }
@@ -52,9 +68,11 @@ struct HistoryListView: View {
             searchFocused = true
             HistoryItemDecorator.previewThrottler.minimumDelay = Double(previewDelay) / 1000
             HistoryItemDecorator.previewThrottler.cancel()
-            appState.selection = appState.history.unpinnedItems.first?.id
+            appState.isKeyboardNavigating = true
+            appState.selection = appState.history.unpinnedItems.first?.id ?? appState.history.pinnedItems.first?.id
           } else {
             modifierFlags.flags = []
+            appState.isKeyboardNavigating = true
           }
         }
         // Calculate the total height inside a scroll view.
@@ -77,7 +95,13 @@ struct HistoryListView: View {
 
     if pinTo == .bottom {
       LazyVStack(spacing: 0) {
-        ForEach(appState.history.pinnedItems.filter(\.isVisible)) { item in
+        if showPinsSeparator {
+          Divider()
+            .padding(.horizontal, 10)
+            .padding(.vertical, 3)
+        }
+
+        ForEach(pinnedItems) { item in
           HistoryItemView(item: item)
         }
       }

@@ -66,6 +66,7 @@ class Clipboard {
   func copy(_ string: String) {
     pasteboard.clearContents()
     pasteboard.setString(string, forType: .string)
+    sync()
     checkForChangesInPasteboard()
   }
 
@@ -77,15 +78,7 @@ class Clipboard {
     var contents = item.contents
 
     if removeFormatting {
-      let stringContents = contents.filter({
-        NSPasteboard.PasteboardType($0.type) == .string
-      })
-
-      // If there is no string representation of data,
-      // behave like we didn't have to remove formatting.
-      if !stringContents.isEmpty {
-        contents = stringContents
-      }
+      contents = clearFormatting(contents)
     }
 
     for content in contents {
@@ -106,6 +99,8 @@ class Clipboard {
     pasteboard.writeObjects(fileURLItems)
 
     pasteboard.setString("", forType: .fromMaccy)
+    pasteboard.setString(item.application ?? "", forType: .source)
+    sync()
 
     Task {
       Notifier.notify(body: item.title, sound: .knock)
@@ -279,5 +274,39 @@ class Clipboard {
     }
 
     return false
+  }
+
+  // Some applications requires window be unfocused and focused back to sync the clipboard.
+  // - Chrome Remote Desktop (https://github.com/p0deje/Maccy/issues/948)
+  // - Netbeans (https://github.com/p0deje/Maccy/issues/879)
+  private func sync() {
+    guard let app = sourceApp,
+          app.bundleURL?.lastPathComponent == "Chrome Remote Desktop.app" ||
+            app.localizedName?.contains("NetBeans") == true else {
+      return
+    }
+
+    NSApp.activate(ignoringOtherApps: true)
+    NSApp.hide(self)
+  }
+
+  private func clearFormatting(_ contents: [HistoryItemContent]) -> [HistoryItemContent] {
+    var newContents: [HistoryItemContent] = contents
+    let stringContents = contents.filter { NSPasteboard.PasteboardType($0.type) == .string }
+
+    // If there is no string representation of data,
+    // behave like we didn't have to remove formatting.
+    if !stringContents.isEmpty {
+      newContents = stringContents
+
+      // Preserve file URLs.
+      // https://github.com/p0deje/Maccy/issues/962
+      let fileURLContents = contents.filter { NSPasteboard.PasteboardType($0.type) == .fileURL }
+      if !fileURLContents.isEmpty {
+        newContents += fileURLContents
+      }
+    }
+
+    return newContents
   }
 }

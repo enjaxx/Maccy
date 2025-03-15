@@ -12,9 +12,12 @@ struct PreviewItemView: View {
           .aspectRatio(contentMode: .fit)
           .clipShape(.rect(cornerRadius: 5))
       } else {
-        Text(item.text)
-          .controlSize(.regular)
-          .lineLimit(100)
+        ScrollView {
+          WrappingTextView {
+            Text(item.text)
+              .font(.body)
+          }
+        }
       }
 
       Divider()
@@ -23,6 +26,9 @@ struct PreviewItemView: View {
       if let application = item.application {
         HStack(spacing: 3) {
           Text("Application", tableName: "PreviewItemView")
+          Image(nsImage: item.applicationImage.nsImage)
+            .resizable()
+            .frame(width: 11, height: 11)
           Text(application)
         }
       }
@@ -60,7 +66,6 @@ struct PreviewItemView: View {
       }
     }
     .controlSize(.small)
-    .frame(maxWidth: 800)
     .padding()
   }
 }
