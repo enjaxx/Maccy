@@ -26,17 +26,25 @@ class HistoryItem {
        let character = Sauce.shared.character(for: Int(pinKey.QWERTYKeyCode), cocoaModifiers: []) {
       keys.remove(character)
     }
+    if let previewKey = KeyChord.previewKey,
+       let character = Sauce.shared.character(for: Int(previewKey.QWERTYKeyCode), cocoaModifiers: []) {
+      keys.remove(character)
+    }
 
     return keys
   }
 
   @MainActor
   static var availablePins: [String] {
-    let descriptor = FetchDescriptor<HistoryItem>(
-      predicate: #Predicate { $0.pin != nil }
-    )
-    let pins = try? Storage.shared.context.fetch(descriptor).compactMap({ $0.pin })
-    let assignedPins = Set(pins ?? [])
+    availablePins(in: History.shared.all.compactMap {
+      if $0.isPinned { return $0.item }
+      return nil
+    })
+  }
+
+  @MainActor
+  static func availablePins(in items: [HistoryItem]) -> [String] {
+    let assignedPins = Set(items.compactMap(\.pin))
     return Array(supportedPins.subtracting(assignedPins))
   }
 
@@ -47,9 +55,14 @@ class HistoryItem {
     NSPasteboard.PasteboardType.modified.rawValue,
     NSPasteboard.PasteboardType.fromMaccy.rawValue,
     NSPasteboard.PasteboardType.linkPresentationMetadata.rawValue,
-    NSPasteboard.PasteboardType.customPasteboardData.rawValue,
-    NSPasteboard.PasteboardType.source.rawValue
+    NSPasteboard.PasteboardType.customWebKitPasteboardData.rawValue,
+    NSPasteboard.PasteboardType.source.rawValue,
+    NSPasteboard.PasteboardType.customChromiumWebData.rawValue,
+    NSPasteboard.PasteboardType.chromiumSourceUrl.rawValue,
+    NSPasteboard.PasteboardType.chromiumSourceToken.rawValue,
+    NSPasteboard.PasteboardType.notesRichText.rawValue
   ]
+  private static let imageTypes: [NSPasteboard.PasteboardType] = StorageType.images.types
 
   var application: String?
   var firstCopiedAt: Date = Date.now
@@ -58,8 +71,10 @@ class HistoryItem {
   var pin: String?
   var title = ""
 
-  @Relationship(deleteRule: .cascade)
+  @Relationship(deleteRule: .cascade, inverse: \HistoryItemContent.item)
   var contents: [HistoryItemContent] = []
+
+  @Transient private var cachedDecodedImage: NSImage?
 
   init(contents: [HistoryItemContent] = []) {
     self.firstCopiedAt = firstCopiedAt
@@ -86,7 +101,9 @@ class HistoryItem {
     }
 
     // 1k characters is trade-off for performance
-    var title = previewableText.shortened(to: 1_000)
+    var title = previewableText
+      .shortened(to: 1_000)
+      .removingScalarsUnsafeForTitleLayout()
 
     if Defaults[.showSpecialSymbols] {
       if let range = title.range(of: "^ +", options: .regularExpression) {
@@ -141,7 +158,7 @@ class HistoryItem {
 
   var imageData: Data? {
     var data: Data?
-    data = contentData([.tiff, .png, .jpeg, .heic])
+    data = contentData(Self.imageTypes)
     if data == nil, universalClipboardImage, let url = fileURLs.first {
       data = try? Data(contentsOf: url)
     }
@@ -150,11 +167,15 @@ class HistoryItem {
   }
 
   var image: NSImage? {
+    if let img = cachedDecodedImage {
+      return img
+    }
     guard let data = imageData else {
       return nil
     }
 
-    return NSImage(data: data)
+    cachedDecodedImage = NSImage(data: data)
+    return cachedDecodedImage
   }
 
   var rtfData: Data? { contentData([.rtf]) }
@@ -164,6 +185,11 @@ class HistoryItem {
     }
 
     return NSAttributedString(rtf: data, documentAttributes: nil)
+  }
+
+  func clearDecodedImageCache() {
+    cachedDecodedImage?.recache()
+    cachedDecodedImage = nil
   }
 
   var text: String? {

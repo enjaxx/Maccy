@@ -33,19 +33,37 @@ struct GeneralSettingsPane: View {
       }
 
       Settings.Section(label: { Text("Open", tableName: "GeneralSettings") }) {
-        KeyboardShortcuts.Recorder(for: .popup)
+        KeyboardShortcuts.Recorder(for: .popup, onChange: { newShortcut in
+          if newShortcut == nil {
+            // No shortcut is recorded. Remove keys monitor
+            AppState.shared.popup.deinitEventsMonitor()
+          } else {
+            // User is using shortcut. Ensure keys monitor is initialized
+            AppState.shared.popup.initEventsMonitor()
+          }
+        })
           .help(Text("OpenTooltip", tableName: "GeneralSettings"))
+          .accessibilityLabel(Text("Open", tableName: "GeneralSettings"))
       }
+
       Settings.Section(label: { Text("Pin", tableName: "GeneralSettings") }) {
         KeyboardShortcuts.Recorder(for: .pin)
           .help(Text("PinTooltip", tableName: "GeneralSettings"))
+          .accessibilityLabel(Text("Pin", tableName: "GeneralSettings"))
       }
-      Settings.Section(
-        bottomDivider: true,
-        label: { Text("Delete", tableName: "GeneralSettings") }
+      Settings.Section(label: { Text("Delete", tableName: "GeneralSettings") }
       ) {
         KeyboardShortcuts.Recorder(for: .delete)
           .help(Text("DeleteTooltip", tableName: "GeneralSettings"))
+          .accessibilityLabel(Text("Delete", tableName: "GeneralSettings"))
+      }
+      Settings.Section(
+        bottomDivider: true,
+        label: { Text("ShowPreview", tableName: "GeneralSettings") }
+      ) {
+        KeyboardShortcuts.Recorder(for: .togglePreview)
+          .help(Text("ShowPreviewTooltip", tableName: "GeneralSettings"))
+          .accessibilityLabel(Text("ShowPreview", tableName: "GeneralSettings"))
       }
 
       Settings.Section(
@@ -58,7 +76,8 @@ struct GeneralSettingsPane: View {
           }
         }
         .labelsHidden()
-        .frame(width: 180)
+        .accessibilityLabel(Text("Search", tableName: "GeneralSettings"))
+        .frame(width: 180, alignment: .leading)
       }
 
       Settings.Section(

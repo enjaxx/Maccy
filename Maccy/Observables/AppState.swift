@@ -2,44 +2,20 @@ import AppKit
 import Defaults
 import Foundation
 import Settings
+import SwiftUI
 
 @Observable
 class AppState: Sendable {
-  static let shared = AppState()
+  static let shared = AppState(history: History.shared, footer: Footer())
+
+  let multiSelectionEnabled = false
 
   var appDelegate: AppDelegate?
   var popup: Popup
   var history: History
   var footer: Footer
-
-  var scrollTarget: UUID?
-  var selection: UUID? {
-    didSet {
-      selectWithoutScrolling(selection)
-      scrollTarget = selection
-    }
-  }
-
-  func selectWithoutScrolling(_ item: UUID?) {
-    history.selectedItem = nil
-    footer.selectedItem = nil
-
-    if let item = history.items.first(where: { $0.id == item }) {
-      history.selectedItem = item
-    } else if let item = footer.items.first(where: { $0.id == item }) {
-      footer.selectedItem = item
-    }
-  }
-
-  var hoverSelectionWhileKeyboardNavigating: UUID?
-  var isKeyboardNavigating: Bool = true {
-    didSet {
-      if let hoverSelection = hoverSelectionWhileKeyboardNavigating {
-        hoverSelectionWhileKeyboardNavigating = nil
-        selection = hoverSelection
-      }
-    }
-  }
+  var navigator: NavigationManager
+  var preview: SlideoutController
 
   var searchVisible: Bool {
     if !Defaults[.showSearch] { return false }
@@ -59,84 +35,69 @@ class AppState: Sendable {
   private let about = About()
   private var settingsWindowController: SettingsWindowController?
 
-  init() {
-    history = History.shared
-    footer = Footer()
+  init(history: History, footer: Footer) {
+    self.history = history
+    self.footer = footer
     popup = Popup()
+    navigator = NavigationManager(history: history, footer: footer)
+    preview = SlideoutController(
+      onContentResize: { contentWidth in
+        Defaults[.windowSize].width = contentWidth
+      },
+      onSlideoutResize: { previewWidth in
+        Defaults[.previewWidth] = previewWidth
+      })
+    preview.contentWidth = Defaults[.windowSize].width
+    preview.slideoutWidth = Defaults[.previewWidth]
   }
 
   @MainActor
-  func select() {
-    if let item = history.selectedItem, history.items.contains(item) {
-      history.select(item)
+  func select(flags modifierFlags: NSEvent.ModifierFlags) {
+    if !navigator.selection.isEmpty {
+      if navigator.isMultiSelectInProgress {
+        navigator.isManualMultiSelect = false
+        history.startPasteStack(selection: &navigator.selection, flags: modifierFlags)
+      } else {
+        history.select(navigator.selection.first, flags: modifierFlags)
+      }
     } else if let item = footer.selectedItem {
-      if item.confirmation != nil {
+      // TODO: Use item.suppressConfirmation, but it's not updated!
+      if item.confirmation != nil, Defaults[.suppressClearAlert] == false {
         item.showConfirmation = true
       } else {
         item.action()
       }
     } else {
-      Clipboard.shared.copy(history.searchQuery)
+      Clipboard.shared.copyInMaccy(history.searchQuery)
       history.searchQuery = ""
     }
   }
 
-  private func selectFromKeyboardNavigation(_ id: UUID?) {
-    isKeyboardNavigating = true
-    selection = id
-  }
-
-  func highlightFirst() {
-    if let item = history.items.first(where: \.isVisible) {
-      selectFromKeyboardNavigation(item.id)
-    }
-  }
-
-  func highlightPrevious() {
-    isKeyboardNavigating = true
-    if let selectedItem = history.selectedItem {
-      if let nextItem = history.items.filter(\.isVisible).item(before: selectedItem) {
-        selectFromKeyboardNavigation(nextItem.id)
-      }
-    } else if let selectedItem = footer.selectedItem {
-      if let nextItem = footer.items.filter(\.isVisible).item(before: selectedItem) {
-        selectFromKeyboardNavigation(nextItem.id)
-      } else if selectedItem == footer.items.first(where: \.isVisible),
-                let nextItem = history.items.last(where: \.isVisible) {
-        selectFromKeyboardNavigation(nextItem.id)
+  @MainActor
+  func togglePin() {
+    withTransaction(Transaction()) {
+      navigator.selection.forEach { _, item in
+        history.togglePin(item)
       }
     }
   }
 
-  func highlightNext() {
-    if let selectedItem = history.selectedItem {
-      if let nextItem = history.items.filter(\.isVisible).item(after: selectedItem) {
-        selectFromKeyboardNavigation(nextItem.id)
-      } else if selectedItem == history.items.filter(\.isVisible).last,
-                let nextItem = footer.items.first(where: \.isVisible) {
-        selectFromKeyboardNavigation(nextItem.id)
-      }
-    } else if let selectedItem = footer.selectedItem {
-      if let nextItem = footer.items.filter(\.isVisible).item(after: selectedItem) {
-        selectFromKeyboardNavigation(nextItem.id)
-      }
-    } else {
-      selectFromKeyboardNavigation(footer.items.first(where: \.isVisible)?.id)
-    }
+  @MainActor
+  func removePasteStack() {
+    history.interruptPasteStack()
+    navigator.highlightFirst()
   }
 
-  func highlightLast() {
-    if let selectedItem = history.selectedItem {
-      if selectedItem == history.items.filter(\.isVisible).last,
-         let nextItem = footer.items.first(where: \.isVisible) {
-        selectFromKeyboardNavigation(nextItem.id)
-      } else {
-        selectFromKeyboardNavigation(history.items.last(where: \.isVisible)?.id)
+  @MainActor
+  func deleteSelection() {
+    guard let leadItem = navigator.leadHistoryItem else { return }
+    let nextUnselectedItem = history.visibleItems.nearest(to: leadItem) { !$0.isSelected }
+
+    withTransaction(Transaction()) {
+      navigator.selection.forEach { _, item in
+        history.delete(item)
       }
-    } else if footer.selectedItem != nil {
-      selectFromKeyboardNavigation(footer.items.last(where: \.isVisible)?.id)
-    } else {
-      selectFromKeyboardNavigation(footer.items.first(where: \.isVisible)?.id)
+      navigator.select(item: nextUnselectedItem)
     }
   }
 
@@ -147,51 +108,72 @@ class AppState: Sendable {
   @MainActor
   func openPreferences() { // swiftlint:disable:this function_body_length
     if settingsWindowController == nil {
+      let generalTitle = NSLocalizedString("Title", tableName: "GeneralSettings", comment: "")
+      let storageTitle = NSLocalizedString("Title", tableName: "StorageSettings", comment: "")
+      let appearanceTitle = NSLocalizedString("Title", tableName: "AppearanceSettings", comment: "")
+      let pinsTitle = NSLocalizedString("Title", tableName: "PinsSettings", comment: "")
+      let ignoreTitle = NSLocalizedString("Title", tableName: "IgnoreSettings", comment: "")
+      let advancedTitle = NSLocalizedString("Title", tableName: "AdvancedSettings", comment: "")
+      let toolbarTitles = [generalTitle, storageTitle, appearanceTitle, pinsTitle, ignoreTitle, advancedTitle]
+      let titleAttributes: [NSAttributedString.Key: Any] = [.font: NSFont.systemFont(ofSize: NSFont.systemFontSize)]
+      let titleWidth = toolbarTitles.reduce(CGFloat.zero) {
+        $0 + ($1 as NSString).size(withAttributes: titleAttributes).width
+      }
+      let toolbarItemSpacing: CGFloat = 24
+      let toolbarEdgeSpacing: CGFloat = 40
+      let toolbarWidth = titleWidth + CGFloat(toolbarTitles.count) * toolbarItemSpacing + toolbarEdgeSpacing
+      let minimumWidth = max(500, ceil(toolbarWidth))
       settingsWindowController = SettingsWindowController(
         panes: [
           Settings.Pane(
             identifier: Settings.PaneIdentifier.general,
-            title: NSLocalizedString("Title", tableName: "GeneralSettings", comment: ""),
+            title: generalTitle,
             toolbarIcon: NSImage.gearshape!
           ) {
             GeneralSettingsPane()
+              .frame(minWidth: minimumWidth)
           },
           Settings.Pane(
             identifier: Settings.PaneIdentifier.storage,
-            title: NSLocalizedString("Title", tableName: "StorageSettings", comment: ""),
+            title: storageTitle,
             toolbarIcon: NSImage.externaldrive!
           ) {
             StorageSettingsPane()
+              .frame(minWidth: minimumWidth)
           },
           Settings.Pane(
             identifier: Settings.PaneIdentifier.appearance,
-            title: NSLocalizedString("Title", tableName: "AppearanceSettings", comment: ""),
+            title: appearanceTitle,
             toolbarIcon: NSImage.paintpalette!
           ) {
             AppearanceSettingsPane()
+              .frame(minWidth: minimumWidth)
           },
           Settings.Pane(
             identifier: Settings.PaneIdentifier.pins,
-            title: NSLocalizedString("Title", tableName: "PinsSettings", comment: ""),
+            title: pinsTitle,
             toolbarIcon: NSImage.pincircle!
           ) {
             PinsSettingsPane()
               .environment(self)
               .modelContainer(Storage.shared.container)
+              .frame(minWidth: minimumWidth)
           },
           Settings.Pane(
             identifier: Settings.PaneIdentifier.ignore,
-            title: NSLocalizedString("Title", tableName: "IgnoreSettings", comment: ""),
+            title: ignoreTitle,
             toolbarIcon: NSImage.nosign!
           ) {
             IgnoreSettingsPane()
+              .frame(minWidth: minimumWidth)
           },
           Settings.Pane(
             identifier: Settings.PaneIdentifier.advanced,
-            title: NSLocalizedString("Title", tableName: "AdvancedSettings", comment: ""),
+            title: advancedTitle,
             toolbarIcon: NSImage.gearshape2!
           ) {
             AdvancedSettingsPane()
+              .frame(minWidth: minimumWidth)
           }
         ]
       )
